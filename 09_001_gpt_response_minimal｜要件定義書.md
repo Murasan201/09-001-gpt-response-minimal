@@ -41,10 +41,11 @@
 ## 4. 機能要件（FR）
 - **FR-1**: `.env` から `OPENAI_API_KEY` を読み込む（`python-dotenv` を使用）。
 - **FR-2**: OpenAI Chat Completions API を呼び出し、**1 回**メッセージを送信する。
-  - モデルは **`gpt-5-mini`** を既定（将来変更容易な構造）。
+  - モデルは **`gpt-5-mini`** を既定（OpenAI の最新推論モデル）。
   - 入力メッセージ: 簡易な挨拶または説明（例: 「Raspberry Pi について一言で」）。
+  - パラメータ: `max_completion_tokens=500` 以上（推論モデルのため、推論トークン + 応答トークンの合計を考慮）。
 - **FR-3**: 応答メッセージ本文を標準出力に表示する。
-- **FR-4**: 可能であれば `usage` 情報（total/prompt/completion tokens）を表示する。
+- **FR-4**: `usage` 情報（total/prompt/completion tokens + reasoning tokens）を表示する。
 - **FR-5**: 例外発生時は **例外種別とヒント**（API キー、ネットワーク、モデル名など）を表示する。
 
 ---
@@ -85,8 +86,11 @@ python3 api_test.py
 ## 8. エラーハンドリング方針
 - API キー未設定/無効 → 「`.env`/環境変数の確認」を案内。
 - ネットワーク障害 → DNS/プロキシ/ファイアウォール確認のヒントを表示。
-- モデル名エラー → 利用可能モデルへの変更提案（例: `gpt-4.1-mini` など）。
+- モデル名エラー → 利用可能モデルへの変更提案（例: `gpt-4o-mini` など）。
+- パラメータエラー → GPT-5 系モデルでは `max_completion_tokens` を使用し、`max_tokens` は非サポート。
+- 応答が空 → `max_completion_tokens` の値を増やす（推論モデルは推論プロセスにトークンを消費）。
 - レート制限/支払い設定 → ダッシュボードの Billing/Usage を案内。
+- 詳細は `TROUBLESHOOTING.md` を参照。
 
 ---
 
@@ -101,12 +105,15 @@ python3 api_test.py
 ## 10. リポジトリ構成（案）
 ```
 09-001-gpt-response-minimal/
-├── api_test.py
-├── README.md
-├── requirements.txt
-├── .gitignore
-└── docs/
-    └── requirements.md  # 本ドキュメント（生成物）
+├── gpt_response_minimal.py       # メインスクリプト
+├── README.md                     # セットアップと実行手順
+├── CLAUDE.md                     # 開発者向けガイド
+├── TROUBLESHOOTING.md            # エラーと対策のノウハウ集
+├── 09_001_gpt_response_minimal｜要件定義書.md  # 本ドキュメント
+├── requirements.txt              # Python依存関係
+├── .env                          # APIキー（.gitignoreで除外）
+├── .gitignore                    # Git除外設定
+└── env/                          # 仮想環境（.gitignoreで除外）
 ```
 
 ---
@@ -129,14 +136,17 @@ python3 api_test.py
 
 ---
 
-## 付録 A: `api_test.py` 仕様（最小）
+## 付録 A: `gpt_response_minimal.py` 仕様（最小）
 - **引数**: なし（ハードコードの 1 プロンプト）。
 - **処理**:
   1. `.env` 読み込み → `OPENAI_API_KEY` 検証。
-  2. `gpt-5-mini` に **system + user** の 2 メッセージで問い合わせ。
-  3. 応答を標準出力に表示。`usage` が取得できる場合は併せて表示。
-  4. 例外時は要因別メッセージを表示し、終了コード ≠ 0 を返す。
+  2. `gpt-5-mini`（推論モデル）に **system + user** の 2 メッセージで問い合わせ。
+  3. パラメータ: `max_completion_tokens=500`（推論トークン + 応答トークンの合計）。
+  4. 応答を標準出力に表示。`usage` 情報（total/prompt/completion/reasoning tokens）を表示。
+  5. 終了理由（`finish_reason`）を表示。
+  6. 例外時は要因別メッセージを表示し、終了コード ≠ 0 を返す。
 - **終了コード**: 正常 `0`、異常 `1`。
+- **推論モデルの注意点**: `gpt-5-mini` は推論プロセスにトークンを消費するため、`max_completion_tokens` を十分に大きく設定する必要がある。
 
 ---
 
