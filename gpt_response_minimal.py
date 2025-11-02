@@ -91,11 +91,7 @@ def test_chatgpt_api(client):
         # 終了理由の表示
         # - 'stop': 正常に完了
         # - 'length': トークン制限に達して終了（max_completion_tokensを増やす必要あり）
-        finish_reason = response.choices[0].finish_reason
-        print(f"終了理由: {finish_reason}")
-        if finish_reason == 'length':
-            print("警告: トークン制限により応答が途中で終了しました")
-            print("対処方法: max_completion_tokensの値を増やしてください")
+        print(f"終了理由: {response.choices[0].finish_reason}")
 
     except Exception as e:
         print(f"\n[API呼び出し]エラー: {e}")
